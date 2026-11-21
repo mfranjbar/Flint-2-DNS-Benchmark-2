@@ -5,7 +5,7 @@ set -u
 DIR="${DNSTEST_DIR:-/root/dnstest2}"
 REPORT="$DIR/latest-top10.txt"
 LOCK='/tmp/flint-dnstest2.lock'
-KDIG='/usr/bin/kdig'
+KDIG="${DNSTEST_KDIG:-/usr/bin/kdig}"
 VERSION='2.0.0'
 ROUNDS=2
 QUERY_TIMEOUT=3
@@ -94,6 +94,7 @@ check_deps() {
   curl --help all 2>&1 | grep -q -- '--next' || { say 'curl lacks --next'; return 1; }
   for c in base64 od tr wc; do command -v "$c" >/dev/null 2>&1 || { say "Missing command: $c"; return 1; }; done
   [ -d "$DIR" ] && [ -w "$DIR" ] || { say "Directory not writable: $DIR"; return 1; }
+  DNSTEST_DIR="$DIR" "$DIR/doh-bench.sh" --check >/dev/null 2>&1 || { say 'DoH prerequisite check failed; run doh-bench.sh --check for details.'; return 1; }
   return 0
 }
 get_ms() {
