@@ -25,4 +25,4 @@ jobs:
       - name: Run mocked full orchestrator test
         run: busybox ash tests/test-orchestrator.sh
       - name: Run isolated install and uninstall lifecycle test
-        run: busybox ash tests/test-install.sh
+        run: sudo busybox ash tests/test-install.sh
