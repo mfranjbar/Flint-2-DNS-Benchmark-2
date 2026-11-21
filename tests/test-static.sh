@@ -26,3 +26,7 @@ grep -Fq 'DNS4EU|86.54.11.100|unfiltered.joindns4.eu|/dns-query|POST' doh-bench.
 grep -Fq 'FlashStart (registration required)|185.236.104.104|doh.flashstart.com|/f17c9ee5|POST' doh-bench.sh
 ! grep -q '^Mullvad|194.242.2.2|dns.mullvad.net' doh-bench.sh
 grep -Fq 'SERVER_LIMIT:-$((TOTAL_DOMAINS * (WARMUP_ROUNDS + ROUNDS) * QUERY_TIMEOUT + 5))' doh-bench.sh
+
+grep -q 'DNSTEST_INSTALL_DIR' install.sh
+grep -q 'DNSTEST_INSTALL_SHELL' install.sh
+grep -q 'DNSTEST_INSTALL_DIR' uninstall.sh
