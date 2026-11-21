@@ -13,4 +13,6 @@ grep -q "mfranjbar/Flint-2-DNS-Benchmark-2" install.sh
 grep -q "DIR='/root/dnstest2'" install.sh
 grep -q "CMD='/usr/bin/dnstest2'" install.sh
 ! grep -q "/root/dnstest/" install.sh
+grep -q 'DIR="${DNSTEST_DIR:-/root/dnstest2}"' doh-bench.sh
+! grep -q 'DIR="${DNSTEST_DIR:-/root/dnstest}"' doh-bench.sh
 echo "Static checks: 27 public, 9 Iranian, 13 DoT, 26 DoH; independent v2 paths: PASS"
