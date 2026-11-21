@@ -18,5 +18,7 @@ jobs:
           busybox ash -n install.sh
           busybox ash -n uninstall.sh
           busybox ash -n 41-dnstest2-dashboard.sh
+      - name: Run static provider and isolation checks
+        run: busybox ash tests/test-static.sh
       - name: Run DoH mocked integration test
         run: busybox ash tests/test-doh.sh
