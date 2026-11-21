@@ -16,3 +16,7 @@ grep -q "CMD='/usr/bin/dnstest2'" install.sh
 grep -q 'DIR="${DNSTEST_DIR:-/root/dnstest2}"' doh-bench.sh
 ! grep -q 'DIR="${DNSTEST_DIR:-/root/dnstest}"' doh-bench.sh
 echo "Static checks: 27 public, 9 Iranian, 13 DoT, 26 DoH; independent v2 paths: PASS"
+
+grep -Fq 'TMP="/tmp/flint-dnstest2-$$"' dns-bench.sh
+grep -Fq 'if (ok[1] + 0 > 0)' dns-bench.sh
+grep -Fq 'Only $DOH_COUNT successful DoH resolvers' dns-bench.sh
