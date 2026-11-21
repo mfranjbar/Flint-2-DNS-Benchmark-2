@@ -80,8 +80,11 @@ awk '
   if (n==7 && $5!="DoH") exit 1
   if (n==8 && $5!="DoH") exit 1
   if (n>=9 && $5!="UDP" && $5!="TCP") exit 1
+  if (n==1 || n==3 || n==5 || n==7) first_avg=$3+0
+  if (n==2 || n==4 || n==6 || n==8) { if (($3+0) < first_avg) exit 1 }
 }
 END { if (n != 10) exit 1 }
 ' "$REPORT"
 grep -q 'Iran-A\|Iran-B' "$REPORT"
+test "$(awk '/^[[:space:]]*9[[:space:]]/ {print $4} /^[[:space:]]*10[[:space:]]/ {print $4}' "$REPORT" | sort -u | wc -l | tr -d ' ')" -eq 2
 echo 'Mocked end-to-end v2 orchestration and exact 10-row ordering: PASS'
