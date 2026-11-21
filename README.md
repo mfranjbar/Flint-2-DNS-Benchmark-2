@@ -19,7 +19,7 @@ The installer installs only missing dependencies: `coreutils-timeout`, `knot-dig
 - Iranian DNS: all nine configured Iranian IPv4 endpoints, each tested over UDP and TCP; best two successful results are selected across both protocols.
 - DoT: 13 configured TLS endpoints, with certificate and hostname validation.
 - DoH: all 26 endpoints from the reference-site list, plus the pre-existing Mullvad entry; GET/POST wire-format requests, TLS verification, one warm-up round and two measured rounds across the reference site's 12 domains.
-- Classic DNS tests use two rounds over github.com, nasa.gov and openwrt.org. Each failed sample is scored as 5000 ms, so a resolver with low success cannot rank unrealistically high.
+- UDP/TCP/DoT use one unscored warm-up round followed by two measured rounds over github.com, nasa.gov and openwrt.org. DoH uses the reference site's 12 hostnames, one warm-up round and two measured rounds. Each failed measured sample is scored as 5000 ms, so a resolver with low success cannot rank unrealistically high.
 - Tests are sequential to avoid creating artificial load on the router.
 
 ## Output
