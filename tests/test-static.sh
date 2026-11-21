@@ -20,3 +20,9 @@ echo "Static checks: 27 public, 9 Iranian, 13 DoT, 26 DoH; independent v2 paths:
 grep -Fq 'TMP="/tmp/flint-dnstest2-$$"' dns-bench.sh
 grep -Fq 'if (ok[1] + 0 > 0)' dns-bench.sh
 grep -Fq 'Only $DOH_COUNT successful DoH resolvers' dns-bench.sh
+
+grep -Fq 'DNSPod|119.29.29.29|dns.pub|/dns-query|POST' doh-bench.sh
+grep -Fq 'DNS4EU|86.54.11.100|unfiltered.joindns4.eu|/dns-query|POST' doh-bench.sh
+grep -Fq 'FlashStart (registration required)|185.236.104.104|doh.flashstart.com|/f17c9ee5|POST' doh-bench.sh
+! grep -q '^Mullvad|194.242.2.2|dns.mullvad.net' doh-bench.sh
+grep -Fq 'SERVER_LIMIT:-$((TOTAL_DOMAINS * (WARMUP_ROUNDS + ROUNDS) * QUERY_TIMEOUT + 5))' doh-bench.sh
