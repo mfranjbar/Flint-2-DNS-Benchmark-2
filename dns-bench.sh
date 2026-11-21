@@ -184,7 +184,7 @@ render_report() {
     if [ "$GROUP" = DOT ]; then
       LINES="$(top_two DOT "$SRC")"
     elif [ "$GROUP" = DOH ]; then
-      LINES="$(awk -F'|' '{print $1 "|" $7 "|" $6 "|DoH|" $5}' "$SRC" | sort -t '|' -k1,1n | head -n 2)"
+      LINES="$(awk -F'|' '{ split($5, ok, "/"); if (ok[1] + 0 > 0) print $1 "|" $7 "|" $6 "|DoH|" $5 }' "$SRC" | sort -t '|' -k1,1n | head -n 2)"
     else
       LINES="$(top_two "$GROUP" "$SRC")"
     fi
@@ -240,10 +240,33 @@ done < "$TMP.dotservers"
 say 'Starting DNS-over-HTTPS tests (all configured providers)...'
 DNSTEST_DIR="$DIR" DNSTEST_RAW_OUT="$DRAW" sh "$DIR/doh-bench.sh" >/dev/null || fail 'DoH benchmark failed; previous final report preserved.'
 [ -s "$DRAW" ] || fail 'No DoH raw results were exported.'
+# Require two genuinely successful entries in every requested category.
+TCP_COUNT="$(top_two TCP "$RAW" | wc -l | tr -d ' ')"
+UDP_COUNT="$(top_two UDP "$RAW" | wc -l | tr -d ' ')"
+DOT_COUNT="$(top_two DOT "$RAW" | wc -l | tr -d ' ')"
+DOH_COUNT="$(awk -F'|' '{ split($5, ok, "/"); if (ok[1] + 0 > 0) print }' "$DRAW" | wc -l | tr -d ' ')"
+IRAN_COUNT="$(sort -t '|' -k1,1n "$IRAW" | awk -F'|' '!seen[$3]++ { n++ } END { print n+0 }')"
+[ "$TCP_COUNT" -ge 2 ] || fail "Only $TCP_COUNT successful TCP resolvers; need 2."
+[ "$UDP_COUNT" -ge 2 ] || fail "Only $UDP_COUNT successful UDP resolvers; need 2."
+[ "$DOT_COUNT" -ge 2 ] || fail "Only $DOT_COUNT successful DoT resolvers; need 2."
+[ "$DOH_COUNT" -ge 2 ] || fail "Only $DOH_COUNT successful DoH resolvers; need 2."
+[ "$IRAN_COUNT" -ge 2 ] || fail "Only $IRAN_COUNT distinct Iranian DNS endpoints succeeded; need 2."
+
 LAST_TEST="$(date '+%Y-%m-%d %H:%M:%S')"
 REPORT_TMP="$TMP.report"
 render_report > "$REPORT_TMP" || fail 'Could not render report.'
-[ "$(grep -Ec '^[[:space:]]*[0-9]+[[:space:]]' "$REPORT_TMP")" -eq 10 ] || fail 'Expected exactly 10 result rows; previous report preserved.'
+awk '
+/^[[:space:]]*[0-9]+[[:space:]]/ {
+  n++
+  if ($1 != n) exit 1
+  if (n <= 2 && $5 != "TCP") exit 1
+  if (n >= 3 && n <= 4 && $5 != "UDP") exit 1
+  if (n >= 5 && n <= 6 && $5 != "DOT") exit 1
+  if (n >= 7 && n <= 8 && $5 != "DoH") exit 1
+  if (n >= 9 && $5 != "UDP" && $5 != "TCP") exit 1
+}
+END { if (n != 10) exit 1 }
+' "$REPORT_TMP" || fail 'Expected exactly 10 correctly ordered result rows; previous report preserved.'
 mv -f "$REPORT_TMP" "$REPORT" || fail 'Could not replace final report.'
 cat "$REPORT"
 say "Report saved: $REPORT"
