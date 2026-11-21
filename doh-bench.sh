@@ -4,7 +4,7 @@
 # Uses curl wire-format DoH, connection reuse, TLS verification and DNS response checks.
 # No DNS, firewall, network, or service configuration changes.
 
-DIR="${DNSTEST_DIR:-/root/dnstest}"
+DIR="${DNSTEST_DIR:-/root/dnstest2}"
 REPORT="$DIR/latest-doh.txt"
 CURL="${DNSTEST_CURL:-curl}"
 CA_FILE="${DNSTEST_CA_FILE:-/etc/ssl/cert.pem}"
