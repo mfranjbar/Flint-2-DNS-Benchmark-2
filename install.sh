@@ -33,7 +33,13 @@ for F in dns-bench.sh doh-bench.sh dashboard.sh; do ash -n "$WORK/$F" || die "Sy
 install_pkg coreutils-timeout timeout
 install_pkg knot-dig kdig
 install_pkg curl curl
-install_pkg ca-bundle test
+if [ ! -s /etc/ssl/cert.pem ] && [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then
+  say 'Installing CA certificate bundle: ca-bundle'
+  if command -v apk >/dev/null 2>&1; then apk add ca-bundle || die 'Could not install ca-bundle.'
+  elif command -v opkg >/dev/null 2>&1; then opkg install ca-bundle || die 'Could not install ca-bundle.'
+  else die 'Neither apk nor opkg is available for ca-bundle.'; fi
+fi
+[ -s /etc/ssl/cert.pem ] || [ -s /etc/ssl/certs/ca-certificates.crt ] || die 'CA bundle is still missing.'
 # nl is not required by v2; base64, od and text tools are checked below.
 for C in awk grep sort head sed date mkdir rmdir rm mv cat base64 od tr wc; do command -v "$C" >/dev/null 2>&1 || die "Missing required utility: $C"; done
 mkdir -p "$DIR" "$BACKUP_ROOT" /etc/profile.d || die 'Cannot create install directories.'
