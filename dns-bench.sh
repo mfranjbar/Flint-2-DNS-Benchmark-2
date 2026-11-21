@@ -127,6 +127,10 @@ query_dot() {
 }
 score_server() {
   SNAME="$1"; SIP="$2"; STYPE="$3"; TARGET="$4"; OUTFILE="$5"
+  # One unscored warm-up query per domain, following the reference methodology.
+  for DOMAIN in $DOMAINS; do
+    if [ "$STYPE" = DOT ]; then query_dot "$SIP" "$TARGET" "$DOMAIN"; else query_plain "$SIP" "$DOMAIN" "$STYPE"; fi
+  done
   OK=0; TOTAL=0; SUM='0'; ROUND=1
   while [ "$ROUND" -le "$ROUNDS" ]; do
     for DOMAIN in $DOMAINS; do
@@ -217,11 +221,11 @@ trap 'exit 143' TERM
 trap 'exit 129' HUP
 mkdir "$TMP" || fail 'Cannot create temporary directory.'
 : > "$RAW"; : > "$IRAW"; : > "$DRAW"
-say 'Starting UDP/TCP public DNS tests...'
+say 'Starting UDP/TCP public DNS tests (1 warm-up + 2 measured rounds)...'
 run_classic_group "$PUBLIC_SERVERS" 'UDP TCP' "$RAW"
 say 'Starting Iranian DNS tests (UDP and TCP)...'
 run_classic_group "$IRAN_SERVERS" 'UDP TCP' "$IRAW"
-say 'Starting DNS-over-TLS tests...'
+say 'Starting DNS-over-TLS tests (1 warm-up + 2 measured rounds)...'
 printf '%s\n' "$DOT_SERVERS" > "$TMP.dotservers"
 while IFS='|' read -r NAME IP HOST; do
   [ -n "$NAME" ] || continue
