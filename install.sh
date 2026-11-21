@@ -86,4 +86,5 @@ fi
 say 'Installation complete. Run: dnstest2'
 say 'Version 1 paths and command were not touched.'
 say 'No DNS, firewall, routing or service settings were changed.'
-[ -d "$BACKUP" ] && say "Backup: $BACKUP"
+if [ -d "$BACKUP" ]; then say "Backup: $BACKUP"; fi
+exit 0
