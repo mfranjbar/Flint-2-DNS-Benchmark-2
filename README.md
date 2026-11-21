@@ -7,7 +7,7 @@ Run on Flint 2 as root:
 ```sh
 wget -O /tmp/dnstest2-install.sh https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/install.sh && ash /tmp/dnstest2-install.sh
 ```
-The installer installs only missing dependencies: `coreutils-timeout`, `knot-dig`, `curl`, and `ca-bundle`. It does not run `apk update`. The v2 command and files are separate: `dnstest2`, `/root/dnstest2/`. Version 1's `dnstest`, `/root/dnstest/`, reports and dashboard are untouched.
+The installer installs only missing dependencies: `coreutils-timeout`, `knot-dig`, `curl`, `coreutils-base64`, `coreutils-od`, and `ca-bundle` (only when missing). It does not run `apk update`. The v2 command and files are separate: `dnstest2`, `/root/dnstest2/`. Version 1's `dnstest`, `/root/dnstest/`, reports and dashboard are untouched.
 
 ## Usage
 - `dnstest2 --check`: local dependency checks only; no DNS queries.
