@@ -22,3 +22,5 @@ jobs:
         run: busybox ash tests/test-static.sh
       - name: Run DoH mocked integration test
         run: busybox ash tests/test-doh.sh
+      - name: Run mocked full orchestrator test
+        run: busybox ash tests/test-orchestrator.sh
