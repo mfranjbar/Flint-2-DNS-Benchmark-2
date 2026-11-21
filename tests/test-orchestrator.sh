@@ -59,7 +59,10 @@ Doh-B|192.0.2.41|doh-b.example|/dns-query|GET'
 
 DNSTEST_DIR="$TMP/app" busybox ash "$TMP/app/doh-bench.sh" --check
 busybox ash "$ROOT/dns-bench.sh" --check
-busybox ash "$ROOT/dns-bench.sh" > "$TMP/run.txt"
+if ! busybox ash "$ROOT/dns-bench.sh" > "$TMP/run.txt"; then
+  cat "$TMP/run.txt"
+  exit 1
+fi
 REPORT="$TMP/app/latest-top10.txt"
 test -s "$REPORT"
 test "$(grep -Ec '^[[:space:]]*[0-9]+[[:space:]]' "$REPORT")" -eq 10
