@@ -1,0 +1,22 @@
+name: v2 checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  shell-and-doh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install BusyBox
+        run: sudo apt-get update && sudo apt-get install -y busybox
+      - name: Check shell syntax
+        run: |
+          busybox ash -n dns-bench.sh
+          busybox ash -n doh-bench.sh
+          busybox ash -n install.sh
+          busybox ash -n uninstall.sh
+          busybox ash -n 41-dnstest2-dashboard.sh
+      - name: Run DoH mocked integration test
+        run: busybox ash tests/test-doh.sh
