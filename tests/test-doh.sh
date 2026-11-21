@@ -102,7 +102,7 @@ grep -q 'DNS OVER HTTPS BENCHMARK / FLINT 2' "$REPORT"
 test "$(grep -c '22/24' "$REPORT")" -eq 26
 grep -q '5000.0' "$REPORT"
 awk '/^[[:space:]]*[0-9]+[[:space:]]/ { avg=substr($0,47,8)+0; if (seen && avg < prev) exit 1; prev=avg; seen=1; count++ } END { if (count != 26) exit 1 }' "$REPORT"
-awk '{ p+=$1; g+=$2; o+=$3; n++ } END { if (n != 26 || p != 0 || g != 936 || o != 936) exit 1 }' "$FAKE_CURL_LOG"
+awk '{ p+=$1; g+=$2; o+=$3; n++ } END { if (n != 26 || p != 108 || g != 828 || o != 936) exit 1 }' "$FAKE_CURL_LOG"
 cp "$REPORT" "$TMP/previous-report.txt"
 : > "$FAKE_CURL_LOG"
 export FAKE_CURL_ALL_FAIL=1
