@@ -57,6 +57,7 @@ Dot-B|192.0.2.31|dot-b.example'
 export DNSTEST_DOH_SERVERS='Doh-A|192.0.2.40|doh-a.example|/dns-query|GET
 Doh-B|192.0.2.41|doh-b.example|/dns-query|GET'
 
+DNSTEST_DIR="$TMP/app" busybox ash "$TMP/app/doh-bench.sh" --check
 busybox ash "$ROOT/dns-bench.sh" --check
 busybox ash "$ROOT/dns-bench.sh" > "$TMP/run.txt"
 REPORT="$TMP/app/latest-top10.txt"
