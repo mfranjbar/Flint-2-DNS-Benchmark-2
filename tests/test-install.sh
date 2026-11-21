@@ -26,32 +26,14 @@ case "${1:-}" in
   *) exit 0;;
 esac
 MOCK
-cat > "$TMP/bin/wget" <<'MOCK'
-#!/bin/sh
-OUT=''
-URL=''
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    -q) shift;;
-    -O) OUT="$2"; shift 2;;
-    *) URL="$1"; shift;;
-  esac
-done
-FILE="${URL##*/}"
-case "$FILE" in
-  dns-bench.sh|doh-bench.sh|41-dnstest2-dashboard.sh) cp "$TEST_REPO/$FILE" "$OUT";;
-  *) echo "Unexpected installer download: $URL" >&2; exit 1;;
-esac
-MOCK
 cat > "$TMP/bin/kdig" <<'MOCK'
 #!/bin/sh
 exit 0
 MOCK
 chmod 755 "$TMP/bin/"*
 
-export TEST_REPO="$ROOT"
 export PATH="$TMP/bin:$PATH"
-export DNSTEST_BASE_URL='mock://repo'
+unset DNSTEST_BASE_URL
 export DNSTEST_INSTALL_DIR="$TMP/root/dnstest2"
 export DNSTEST_INSTALL_CMD="$TMP/usr/bin/dnstest2"
 export DNSTEST_DASHBOARD_PATH="$TMP/etc/profile.d/41-dnstest2-dashboard.sh"
