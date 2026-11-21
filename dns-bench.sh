@@ -27,6 +27,10 @@ Quad9|9.9.9.9
 Quad9-Secondary|149.112.112.112
 Quad9-Unfiltered|9.9.9.10
 Quad9-Unfiltered-Secondary|149.112.112.10
+Quad9-ECS-Secure|9.9.9.11
+Quad9-ECS-Secure-Secondary|149.112.112.11
+Quad9-ECS-Unfiltered|9.9.9.12
+Quad9-ECS-Unfiltered-Secondary|149.112.112.12
 OpenDNS|208.67.222.222
 OpenDNS-Secondary|208.67.220.220
 AdGuard|94.140.14.14
