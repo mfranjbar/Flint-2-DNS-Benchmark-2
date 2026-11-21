@@ -3,11 +3,11 @@
 set -u
 REPO='mfranjbar/Flint-2-DNS-Benchmark-2'
 BRANCH='main'
-BASE="https://raw.githubusercontent.com/$REPO/$BRANCH"
-DIR='/root/dnstest2'
-CMD='/usr/bin/dnstest2'
-DASH='/etc/profile.d/41-dnstest2-dashboard.sh'
-BACKUP_ROOT='/root/backup/dns-benchmark-2'
+BASE="${DNSTEST_BASE_URL:-https://raw.githubusercontent.com/$REPO/$BRANCH}"
+DIR="${DNSTEST_INSTALL_DIR:-/root/dnstest2}"
+CMD="${DNSTEST_INSTALL_CMD:-/usr/bin/dnstest2}"
+DASH="${DNSTEST_DASHBOARD_PATH:-/etc/profile.d/41-dnstest2-dashboard.sh}"
+BACKUP_ROOT="${DNSTEST_BACKUP_ROOT:-/root/backup/dns-benchmark-2}"
 WORK="$(mktemp -d /tmp/dnstest2-install.XXXXXX)" || exit 1
 say(){ printf '%s\n' "$*"; }
 die(){ say "ERROR: $*"; exit 1; }
@@ -78,7 +78,11 @@ mv -f "$DIR/.dns-bench.sh.new" "$DIR/dns-bench.sh" || die 'Install main failed.'
 mv -f "$DIR/.doh-bench.sh.new" "$DIR/doh-bench.sh" || die 'Install DoH failed.'
 mv -f "$DASH.new" "$DASH" || die 'Install dashboard failed.'
 ln -sf "$DIR/dns-bench.sh" "$CMD" || die 'Command link failed.'
-DNSTEST_DIR="$DIR" "$CMD" --check || die 'Installed pre-check failed.'
+if [ -n "${DNSTEST_INSTALL_SHELL:-}" ]; then
+  DNSTEST_DIR="$DIR" "$DNSTEST_INSTALL_SHELL" "$CMD" --check || die 'Installed pre-check failed.'
+else
+  DNSTEST_DIR="$DIR" "$CMD" --check || die 'Installed pre-check failed.'
+fi
 say 'Installation complete. Run: dnstest2'
 say 'Version 1 paths and command were not touched.'
 say 'No DNS, firewall, routing or service settings were changed.'
