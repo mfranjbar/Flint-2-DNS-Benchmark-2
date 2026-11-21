@@ -12,9 +12,16 @@ WORK="$(mktemp -d /tmp/dnstest2-install.XXXXXX)" || exit 1
 say(){ printf '%s\n' "$*"; }
 die(){ say "ERROR: $*"; exit 1; }
 [ "$(id -u)" = 0 ] || die 'Run as root.'
-cleanup(){ rm -rf "$WORK"; }
+cleanup(){
+  rm -f "$DIR/.dns-bench.sh.new" "$DIR/.doh-bench.sh.new" "$DASH.new"
+  rm -rf "$WORK"
+}
 trap cleanup EXIT
-fetch(){ if command -v wget >/dev/null 2>&1; then wget -q -O "$2" "$1" && [ -s "$2" ]; else curl -fsSL "$1" -o "$2" && [ -s "$2" ]; fi; }
+fetch(){
+  if command -v wget >/dev/null 2>&1 && wget -q -O "$2" "$1" && [ -s "$2" ]; then return 0; fi
+  if command -v curl >/dev/null 2>&1 && curl -fsSL "$1" -o "$2" && [ -s "$2" ]; then return 0; fi
+  return 1
+}
 install_pkg(){
   P="$1"; C="$2"
   command -v "$C" >/dev/null 2>&1 && return 0
@@ -30,6 +37,14 @@ fetch "$BASE/dns-bench.sh" "$WORK/dns-bench.sh" || die 'Cannot download main ben
 fetch "$BASE/doh-bench.sh" "$WORK/doh-bench.sh" || die 'Cannot download DoH module.'
 fetch "$BASE/41-dnstest2-dashboard.sh" "$WORK/dashboard.sh" || die 'Cannot download dashboard.'
 for F in dns-bench.sh doh-bench.sh dashboard.sh; do ash -n "$WORK/$F" || die "Syntax error in $F"; done
+DNS_COUNT="$(sed -n "/^PUBLIC_SERVERS='/,/^'$/p" "$WORK/dns-bench.sh" | grep -c '|')"
+IRAN_COUNT="$(sed -n "/^IRAN_SERVERS='/,/^'$/p" "$WORK/dns-bench.sh" | grep -c '|')"
+DOT_COUNT="$(sed -n "/^DOT_SERVERS='/,/^'$/p" "$WORK/dns-bench.sh" | grep -c '|')"
+DOH_COUNT="$(sed -n "/^DEFAULT_DOH_SERVERS='/,/^'$/p" "$WORK/doh-bench.sh" | grep -c '|')"
+[ "$DNS_COUNT" -eq 27 ] || die "Public DNS list mismatch: $DNS_COUNT (expected 27)."
+[ "$IRAN_COUNT" -eq 9 ] || die "Iranian DNS list mismatch: $IRAN_COUNT (expected 9)."
+[ "$DOT_COUNT" -eq 13 ] || die "DoT list mismatch: $DOT_COUNT (expected 13)."
+[ "$DOH_COUNT" -eq 26 ] || die "DoH list mismatch: $DOH_COUNT (expected 26)."
 install_pkg coreutils-timeout timeout
 install_pkg knot-dig kdig
 install_pkg curl curl
