@@ -1,5 +1,5 @@
 #!/bin/ash
-set -eu
+set -eux
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 cleanup(){ rm -rf "$TMP"; }
@@ -63,6 +63,7 @@ if ! busybox ash "$ROOT/dns-bench.sh" > "$TMP/run.txt"; then
   cat "$TMP/run.txt"
   exit 1
 fi
+cat "$TMP/run.txt"
 REPORT="$TMP/app/latest-top10.txt"
 test -s "$REPORT"
 test "$(grep -Ec '^[[:space:]]*[0-9]+[[:space:]]' "$REPORT")" -eq 10
