@@ -98,7 +98,7 @@ check_deps() {
   curl --help all 2>&1 | grep -q -- '--next' || { say 'curl lacks --next'; return 1; }
   for c in base64 od tr wc; do command -v "$c" >/dev/null 2>&1 || { say "Missing command: $c"; return 1; }; done
   [ -d "$DIR" ] && [ -w "$DIR" ] || { say "Directory not writable: $DIR"; return 1; }
-  DNSTEST_DIR="$DIR" "$DIR/doh-bench.sh" --check >/dev/null 2>&1 || { say 'DoH prerequisite check failed; run doh-bench.sh --check for details.'; return 1; }
+  DNSTEST_DIR="$DIR" sh "$DIR/doh-bench.sh" --check >/dev/null 2>&1 || { say 'DoH prerequisite check failed; run doh-bench.sh --check for details.'; return 1; }
   return 0
 }
 get_ms() {
@@ -229,7 +229,7 @@ while IFS='|' read -r NAME IP HOST; do
   score_server "$NAME" "$IP" DOT "$HOST" "$RAW"
 done < "$TMP.dotservers"
 say 'Starting DNS-over-HTTPS tests (all configured providers)...'
-DNSTEST_DIR="$DIR" DNSTEST_RAW_OUT="$DRAW" "$DIR/doh-bench.sh" >/dev/null || fail 'DoH benchmark failed; previous final report preserved.'
+DNSTEST_DIR="$DIR" DNSTEST_RAW_OUT="$DRAW" sh "$DIR/doh-bench.sh" >/dev/null || fail 'DoH benchmark failed; previous final report preserved.'
 [ -s "$DRAW" ] || fail 'No DoH raw results were exported.'
 LAST_TEST="$(date '+%Y-%m-%d %H:%M:%S')"
 REPORT_TMP="$TMP.report"
