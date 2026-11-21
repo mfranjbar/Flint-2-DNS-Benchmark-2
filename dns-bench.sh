@@ -189,7 +189,7 @@ $LINES
 EOF2
     fi
   done
-  IRLINES="$(sort -t '|' -k1,1n "$IRAW" | head -n 2)"
+  IRLINES="$(sort -t '|' -k1,1n "$IRAW" | awk -F'|' '!seen[$3]++ { print; n++; if (n==2) exit }')"
   if [ -n "$IRLINES" ]; then
     while IFS='|' read -r AVG NAME IP TYPE OK; do
       [ -n "$NAME" ] || continue
