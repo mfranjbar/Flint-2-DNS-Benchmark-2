@@ -33,6 +33,8 @@ for F in dns-bench.sh doh-bench.sh dashboard.sh; do ash -n "$WORK/$F" || die "Sy
 install_pkg coreutils-timeout timeout
 install_pkg knot-dig kdig
 install_pkg curl curl
+install_pkg coreutils-base64 base64
+install_pkg coreutils-od od
 if [ ! -s /etc/ssl/cert.pem ] && [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then
   say 'Installing CA certificate bundle: ca-bundle'
   if command -v apk >/dev/null 2>&1; then apk add ca-bundle || die 'Could not install ca-bundle.'
