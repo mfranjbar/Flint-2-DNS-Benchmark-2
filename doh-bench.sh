@@ -13,7 +13,7 @@ CA_FILE="${DNSTEST_CA_FILE:-/etc/ssl/cert.pem}"
 ROUNDS="${DNSTEST_ROUNDS:-2}"
 WARMUP_ROUNDS="${DNSTEST_WARMUP_ROUNDS:-1}"
 QUERY_TIMEOUT="${DNSTEST_QUERY_TIMEOUT:-5}"
-SERVER_LIMIT="${DNSTEST_SERVER_LIMIT:-25}"
+SERVER_LIMIT="${DNSTEST_SERVER_LIMIT:-$((TOTAL_DOMAINS * (WARMUP_ROUNDS + ROUNDS) * QUERY_TIMEOUT + 5))}"
 TIMEOUT_PENALTY=5000
 VERSION='2.0.0'
 DEFAULT_DOMAINS='google.com youtube.com facebook.com instagram.com chatgpt.com x.com whatsapp.com reddit.com wikipedia.org amazon.com tiktok.com pinterest.com'
@@ -29,11 +29,11 @@ CleanBrowsing|185.228.168.9|doh.cleanbrowsing.org|/doh/family-filter/|GET
 Cloudflare|1.1.1.1|cloudflare-dns.com|/dns-query|GET
 ControlD|76.76.2.0|freedns.controld.com|/p0|GET
 DNS.SB|185.222.222.222|doh.dns.sb|/dns-query|GET
-DNSPod|119.29.29.29|dns.pub|/dns-query|GET
+DNSPod|119.29.29.29|dns.pub|/dns-query|POST
 Google|8.8.8.8|dns.google|/dns-query|GET
 NextDNS|45.90.28.0|dns.nextdns.io|/|GET
 OpenBLD|146.112.41.2|ada.openbld.net|/dns-query|GET
-DNS4EU|86.54.11.100|unfiltered.joindns4.eu|/dns-query|GET
+DNS4EU|86.54.11.100|unfiltered.joindns4.eu|/dns-query|POST
 Quad9|9.9.9.9|dns.quad9.net|/dns-query|GET
 360|101.226.4.6|doh.360.cn|/dns-query|GET
 Canadian Shield|149.112.121.10|private.canadianshield.cira.ca|/dns-query|GET
@@ -46,8 +46,8 @@ Switch|130.59.31.248|dns.switch.ch|/dns-query|GET
 Foundation for Applied Privacy|146.255.56.98|doh.applied-privacy.net|/query|GET
 UncensoredDNS|91.239.100.100|anycast.uncensoreddns.org|/dns-query|GET
 RethinkDNS|104.21.83.62|sky.rethinkdns.com|/dns-query|GET
+FlashStart (registration required)|185.236.104.104|doh.flashstart.com|/f17c9ee5|POST
 Comcast Xfinity|75.75.75.75|doh.xfinity.com|/dns-query|GET
-Mullvad|194.242.2.2|dns.mullvad.net|/dns-query|GET
 '
 DOH_SERVERS="${DNSTEST_DOH_SERVERS:-$DEFAULT_DOH_SERVERS}"
 
@@ -196,7 +196,7 @@ if [ "${1:-}" = '--check' ]; then
 fi
 
 if [ "${1:-}" = '--help' ]; then
-    say 'Usage: dnstest --doh [--version|--check|--help]'
+    say 'Usage: doh-bench.sh [--version|--check|--help]'
     say 'Runs the DoH benchmark only; classic UDP/TCP/DoT tests are unchanged.'
     exit 0
 fi
