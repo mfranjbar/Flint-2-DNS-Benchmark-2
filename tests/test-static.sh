@@ -10,8 +10,8 @@ DOH_COUNT="$(sed -n "/^DEFAULT_DOH_SERVERS='/,/^'$/p" doh-bench.sh | grep -c '|'
 [ "$DOH_COUNT" -eq 26 ] || { echo "Expected 26 DoH endpoints, got $DOH_COUNT"; exit 1; }
 grep -q "for GROUP in TCP UDP DOT DOH" dns-bench.sh
 grep -q "mfranjbar/Flint-2-DNS-Benchmark-2" install.sh
-grep -q "DIR='/root/dnstest2'" install.sh
-grep -q "CMD='/usr/bin/dnstest2'" install.sh
+grep -q 'DNSTEST_INSTALL_DIR:-/root/dnstest2' install.sh
+grep -q 'DNSTEST_INSTALL_CMD:-/usr/bin/dnstest2' install.sh
 ! grep -q "/root/dnstest/" install.sh
 grep -q 'DIR="${DNSTEST_DIR:-/root/dnstest2}"' doh-bench.sh
 ! grep -q 'DIR="${DNSTEST_DIR:-/root/dnstest}"' doh-bench.sh
