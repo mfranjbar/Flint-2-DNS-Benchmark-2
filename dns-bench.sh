@@ -12,8 +12,8 @@ QUERY_TIMEOUT=3
 DOT_TIMEOUT=4
 HARD_LIMIT=8
 DOMAINS='github.com nasa.gov openwrt.org'
-CA_FILE='/etc/ssl/cert.pem'
-[ -s "$CA_FILE" ] || CA_FILE='/etc/ssl/certs/ca-certificates.crt'
+CA_FILE="${DNSTEST_CA_FILE:-/etc/ssl/cert.pem}"
+[ -s "$CA_FILE" ] || { [ -n "${DNSTEST_CA_FILE:-}" ] || CA_FILE='/etc/ssl/certs/ca-certificates.crt'; }
 
 PUBLIC_SERVERS='
 Cloudflare|1.1.1.1
