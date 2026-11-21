@@ -12,7 +12,6 @@ QUERY_TIMEOUT=3
 DOT_TIMEOUT=4
 HARD_LIMIT=8
 DOMAINS='github.com nasa.gov openwrt.org'
-DOT_DOMAINS='github.com nasa.gov openwrt.org'
 CA_FILE='/etc/ssl/cert.pem'
 [ -s "$CA_FILE" ] || CA_FILE='/etc/ssl/certs/ca-certificates.crt'
 
@@ -171,7 +170,7 @@ render_report() {
     if [ "$GROUP" = DOT ]; then
       LINES="$(top_two DOT "$SRC")"
     elif [ "$GROUP" = DOH ]; then
-      LINES="$(sort -t '|' -k1,1n "$SRC" | head -n 2)"
+      LINES="$(awk -F'|' '{print $1 "|" $7 "|" $6 "|DoH|" $5}' "$SRC" | sort -t '|' -k1,1n | head -n 2)"
     else
       LINES="$(top_two "$GROUP" "$SRC")"
     fi
