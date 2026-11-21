@@ -19,7 +19,7 @@ DEFAULT_DOMAINS='google.com youtube.com facebook.com instagram.com chatgpt.com x
 DOMAINS="${DNSTEST_DOMAINS:-$DEFAULT_DOMAINS}"
 
 # Name|IPv4|TLS hostname|DoH path|HTTP method
-# RFC 8484 wire-format DoH over HTTPS GET, matching the reference site's browser fallback.
+# RFC 8484 wire-format DoH over HTTPS GET/POST; methods follow the reference configuration.
 DEFAULT_DOH_SERVERS='
 AdGuard|94.140.14.14|dns.adguard-dns.com|/dns-query|GET
 AliDNS|223.5.5.5|dns.alidns.com|/dns-query|GET
