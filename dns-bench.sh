@@ -73,7 +73,12 @@ DNS-SB-Secondary-DoT|45.11.45.11|dot.sb
 ControlD-Unfiltered-DoT|76.76.2.0|p0.freedns.controld.com
 '
 
-TMP="/tmp/flint-dnstest2-$$"
+# Optional test fixtures; production defaults remain the full resolver lists.
+PUBLIC_SERVERS="${DNSTEST_PUBLIC_SERVERS:-$PUBLIC_SERVERS}"
+IRAN_SERVERS="${DNSTEST_IRAN_SERVERS:-$IRAN_SERVERS}"
+DOT_SERVERS="${DNSTEST_DOT_SERVERS:-$DOT_SERVERS}"
+
+TMP="/tmp/flint-dnstest2-$"
 RAW="$TMP.classic"
 IRAW="$TMP.iran"
 DRAW="$TMP.doh"
