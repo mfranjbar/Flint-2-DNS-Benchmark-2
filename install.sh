@@ -65,9 +65,9 @@ rollback(){
   restore_file "$BACKUP/doh-bench.sh" "$DIR/doh-bench.sh" "$HAD_DOH" 0 || say 'WARNING: DoH script restore failed.'
   restore_file "$BACKUP/41-dnstest2-dashboard.sh" "$DASH" "$HAD_DASH" 0 || say 'WARNING: dashboard restore failed.'
   restore_file "$BACKUP/dnstest2-command-link" "$CMD" "$HAD_CMD" 1 || say 'WARNING: command link restore failed.'
-  restore_file "$BACKUP/v1-dns-bench.sh" "$V1_SCRIPT" "$HAD_V1_SCRIPT" 0 || say 'WARNING: v1 benchmark restore failed.'
-  restore_file "$BACKUP/v1-dashboard.sh" "$V1_DASH" "$HAD_V1_DASH" 0 || say 'WARNING: v1 dashboard restore failed.'
-  restore_file "$BACKUP/v1-command-link" "$V1_CMD" "$HAD_V1_CMD" 1 || say 'WARNING: v1 command link restore failed.'
+  [ "$HAD_V1_SCRIPT" -eq 0 ] || restore_file "$BACKUP/v1-dns-bench.sh" "$V1_SCRIPT" 1 0 || say 'WARNING: v1 benchmark restore failed.'
+  [ "$HAD_V1_DASH" -eq 0 ] || restore_file "$BACKUP/v1-dashboard.sh" "$V1_DASH" 1 0 || say 'WARNING: v1 dashboard restore failed.'
+  [ "$HAD_V1_CMD" -eq 0 ] || restore_file "$BACKUP/v1-command-link" "$V1_CMD" 1 1 || say 'WARNING: v1 command link restore failed.'
   TRANSACTION=0
 }
 
