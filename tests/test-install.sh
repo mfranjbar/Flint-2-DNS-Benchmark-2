@@ -8,13 +8,13 @@ trap cleanup EXIT
 mkdir -p "$TMP/bin" "$TMP/root/dnstest" "$TMP/usr/bin" "$TMP/etc/profile.d" "$TMP/backup"
 cat > "$TMP/root/dnstest/dns-bench.sh" <<'V1SCRIPT'
 #!/bin/ash
-# FLINT 2 DNS BENCHMARK
+# AX3600 v1 fixture: legacy script has no Flint marker; the known command symlink identifies it.
 DIR="/root/dnstest"
 REPORT="$DIR/latest-top4.txt"
 V1SCRIPT
 cat > "$TMP/etc/profile.d/40-dnstest-dashboard.sh" <<'V1DASH'
 #!/bin/ash
-# Flint 2 - DNS benchmark SSH dashboard
+# AX3600 legacy dashboard fixture: identified by its exact report path and recognized script.
 REPORT="/root/dnstest/latest-top4.txt"
 V1DASH
 printf 'preserved-v1-report\n' > "$TMP/root/dnstest/latest-top4.txt"
