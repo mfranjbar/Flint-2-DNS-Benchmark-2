@@ -8,7 +8,6 @@
 [![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2)
 [![Platform](https://img.shields.io/badge/platform-OpenWrt%20%7C%20ImmortalWrt-2496ED)](https://openwrt.org/)
 [![Shell](https://img.shields.io/badge/shell-BusyBox%20ash-lightgrey)](https://busybox.net/)
-[![License](https://img.shields.io/badge/license-see%20repository-lightgrey)](LICENSE)
 
 [Overview](#overview) · [Features](#features) · [Install](#installation) · [Usage](#usage) · [Reports](#reports) · [Methodology](#benchmark-methodology) · [Migration](#v1-to-v2-migration) · [Uninstall](#uninstallation) · [Safety](#safety-and-privacy)
 
