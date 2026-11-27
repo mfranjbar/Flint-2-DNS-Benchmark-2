@@ -1,6 +1,7 @@
 #!/bin/ash
 # Transactional installer for DNS Benchmark v2. Never overwrites v1 or unrelated files.
 set -u
+umask 077
 
 REPO='mfranjbar/Flint-2-DNS-Benchmark-2'
 BRANCH='main'
@@ -81,6 +82,9 @@ if [ -L "$CMD" ]; then
   CMD_TARGET="$(readlink "$CMD")"
   [ "$CMD_TARGET" = "$DIR/dns-bench.sh" ] || die "Refusing to replace unrelated command symlink: $CMD -> $CMD_TARGET"
 fi
+[ ! -L "$DIR/dns-bench.sh" ] || die 'Main script path is a symlink; refusing to replace it.'
+[ ! -L "$DIR/doh-bench.sh" ] || die 'DoH script path is a symlink; refusing to replace it.'
+[ ! -L "$DASH" ] || die 'Dashboard path is a symlink; refusing to replace it.'
 if [ -e "$DIR/dns-bench.sh" ]; then
   grep -Fq 'FLINT 2 DNS BENCHMARK v2' "$DIR/dns-bench.sh" || die 'Existing main script is not recognized as v2; refusing to overwrite.'
 fi
