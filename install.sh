@@ -76,6 +76,7 @@ DOH_COUNT="$(sed -n "/^DEFAULT_DOH_SERVERS='/,/^'$/p" "$WORK/doh-bench.sh" | gre
 [ "$DOH_COUNT" -eq 26 ] || die "DoH list mismatch: $DOH_COUNT (expected 26)."
 
 # Refuse to replace paths that do not belong to this v2 installation.
+[ ! -L "$DIR" ] || die "Install directory is a symlink; refusing to follow it: $DIR"
 [ ! -e "$DIR" ] || [ -d "$DIR" ] || die "Install path exists and is not a directory: $DIR"
 [ ! -e "$CMD" ] || [ -L "$CMD" ] || die "Refusing to overwrite a regular file at $CMD"
 if [ -L "$CMD" ]; then
