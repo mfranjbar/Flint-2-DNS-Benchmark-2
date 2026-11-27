@@ -127,6 +127,16 @@ if command -v script >/dev/null 2>&1; then
   test ! -L "$DNSTEST_INSTALL_CMD"
   test ! -e "$DNSTEST_DASHBOARD_PATH"
   grep -q 'preserved-report' "$DNSTEST_INSTALL_DIR/latest-top10.txt"
+
+  # A symlinked install directory must be rejected without touching its target.
+  mkdir -p "$TMP/outside-v2"
+  printf '# FLINT 2 DNS BENCHMARK v2\\n' > "$TMP/outside-v2/dns-bench.sh"
+  ln -s "$TMP/outside-v2" "$TMP/symlink-v2"
+  if printf 'YES\\n' | script -q -e -c "DNSTEST_INSTALL_DIR='$TMP/symlink-v2' DNSTEST_INSTALL_CMD='$TMP/no-command' DNSTEST_DASHBOARD_PATH='$TMP/no-dashboard' busybox ash '$ROOT/uninstall.sh'" /dev/null >/dev/null 2>&1; then
+    echo 'Expected symlinked install directory to be rejected.' >&2
+    exit 1
+  fi
+  test -f "$TMP/outside-v2/dns-bench.sh"
 else
   echo 'TTY uninstall behavior skipped: util-linux script is unavailable.'
 fi
