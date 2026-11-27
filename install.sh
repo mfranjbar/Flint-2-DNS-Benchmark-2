@@ -128,9 +128,8 @@ for C in awk grep sort head sed date mkdir rmdir rm mv cat base64 od tr wc cp re
 done
 
 mkdir -p "$DIR" "$BACKUP_ROOT" /etc/profile.d || die 'Cannot create install directories.'
-STAMP="$(date '+%Y%m%d-%H%M%S')-$"
-BACKUP="$BACKUP_ROOT/$STAMP"
-mkdir -p "$BACKUP" || die 'Cannot create transaction backup directory.'
+STAMP="$(date '+%Y%m%d-%H%M%S')"
+BACKUP="$(mktemp -d "$BACKUP_ROOT/$STAMP.XXXXXX")" || die 'Cannot create unique transaction backup directory.'
 
 # Detect v1 only by its known paths AND project-specific content. Never follow symlinks.
 if [ -L "$V1_DIR" ]; then
