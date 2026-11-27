@@ -26,6 +26,7 @@ V1_DASH="${DNSTEST_V1_DASHBOARD_PATH:-/etc/profile.d/40-dnstest-dashboard.sh}"
 V1_OWN_SCRIPT=0
 V1_OWN_DASH=0
 V1_OWN_CMD=0
+V1_DIR_SAFE=1
 say(){ printf '%s\n' "$*"; }
 die(){ say "ERROR: $*" >&2; if [ "$TRANSACTION" -eq 1 ]; then rollback; fi; exit 1; }
 
@@ -133,6 +134,7 @@ mkdir -p "$BACKUP" || die 'Cannot create transaction backup directory.'
 
 # Detect v1 only by its known paths AND project-specific content. Never follow symlinks.
 if [ -L "$V1_DIR" ]; then
+  V1_DIR_SAFE=0
   say "WARNING: v1 directory is a symlink; leaving v1 untouched: $V1_DIR"
 elif [ -f "$V1_SCRIPT" ] && [ ! -L "$V1_SCRIPT" ] &&
      grep -Fq '# FLINT 2 DNS BENCHMARK' "$V1_SCRIPT" &&
@@ -142,18 +144,18 @@ elif [ -e "$V1_SCRIPT" ] || [ -L "$V1_SCRIPT" ]; then
   say "WARNING: Unrecognized v1 script path preserved: $V1_SCRIPT"
 fi
 
-if [ -f "$V1_DASH" ] && [ ! -L "$V1_DASH" ] &&
+if [ "$V1_DIR_SAFE" -eq 1 ] && [ -f "$V1_DASH" ] && [ ! -L "$V1_DASH" ] &&
    grep -Fq '# Flint 2 - DNS benchmark SSH dashboard' "$V1_DASH" &&
    grep -Fq 'REPORT="/root/dnstest/latest-top4.txt"' "$V1_DASH"; then
   V1_OWN_DASH=1
-elif [ -e "$V1_DASH" ] || [ -L "$V1_DASH" ]; then
+elif [ "$V1_DIR_SAFE" -eq 1 ] && { [ -e "$V1_DASH" ] || [ -L "$V1_DASH" ]; }; then
   say "WARNING: Unrecognized v1 dashboard path preserved: $V1_DASH"
 fi
 
-if [ "$V1_OWN_SCRIPT" -eq 1 ] && [ -L "$V1_CMD" ] &&
+if [ "$V1_DIR_SAFE" -eq 1 ] && [ "$V1_OWN_SCRIPT" -eq 1 ] && [ -L "$V1_CMD" ] &&
    [ "$(readlink "$V1_CMD")" = "$V1_SCRIPT" ]; then
   V1_OWN_CMD=1
-elif [ -e "$V1_CMD" ] || [ -L "$V1_CMD" ]; then
+elif [ "$V1_DIR_SAFE" -eq 1 ] && { [ -e "$V1_CMD" ] || [ -L "$V1_CMD" ]; }; then
   say "WARNING: Unrecognized v1 command path preserved: $V1_CMD"
 fi
 
@@ -176,6 +178,9 @@ if [ "$V1_OWN_CMD" -eq 1 ]; then
   cp -P "$V1_CMD" "$BACKUP/v1-command-link" || die 'Could not back up v1 command link.'
   HAD_V1_CMD=1
 fi
+
+# From this point every destructive migration/install step is covered by rollback.
+TRANSACTION=1
 
 # Migration happens only after downloads, syntax/count checks, dependency checks,
 # and backups have succeeded. Rollback restores these exact v1 files on failure.
