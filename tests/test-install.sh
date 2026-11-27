@@ -6,7 +6,19 @@ cleanup(){ rm -rf "$TMP"; }
 trap cleanup EXIT
 
 mkdir -p "$TMP/bin" "$TMP/root/dnstest" "$TMP/usr/bin" "$TMP/etc/profile.d" "$TMP/backup"
-printf 'version-1-preserve\n' > "$TMP/root/dnstest/dns-bench.sh"
+cat > "$TMP/root/dnstest/dns-bench.sh" <<'V1SCRIPT'
+#!/bin/ash
+# FLINT 2 DNS BENCHMARK
+DIR="/root/dnstest"
+REPORT="$DIR/latest-top4.txt"
+V1SCRIPT
+cat > "$TMP/etc/profile.d/40-dnstest-dashboard.sh" <<'V1DASH'
+#!/bin/ash
+# Flint 2 - DNS benchmark SSH dashboard
+REPORT="/root/dnstest/latest-top4.txt"
+V1DASH
+printf 'preserved-v1-report\n' > "$TMP/root/dnstest/latest-top4.txt"
+ln -s "$TMP/root/dnstest/dns-bench.sh" "$TMP/usr/bin/dnstest"
 printf 'test CA bundle\n' > "$TMP/ca.pem"
 
 cat > "$TMP/bin/id" <<'MOCK'
@@ -42,11 +54,29 @@ export DNSTEST_INSTALL_DIR="$TMP/root/dnstest2"
 export DNSTEST_INSTALL_CMD="$TMP/usr/bin/dnstest2"
 export DNSTEST_DASHBOARD_PATH="$TMP/etc/profile.d/41-dnstest2-dashboard.sh"
 export DNSTEST_BACKUP_ROOT="$TMP/backup"
+export DNSTEST_V1_DIR="$TMP/root/dnstest"
+export DNSTEST_V1_CMD="$TMP/usr/bin/dnstest"
+export DNSTEST_V1_DASHBOARD_PATH="$TMP/etc/profile.d/40-dnstest-dashboard.sh"
 export DNSTEST_INSTALL_SHELL="$TMP/bin/ash"
 export DNSTEST_KDIG="$TMP/bin/kdig"
 export DNSTEST_CURL="$TMP/bin/curl"
 export DNSTEST_CA_FILE="$TMP/ca.pem"
 
+# A failed first install must restore every recognized v1 artifact and keep reports.
+export DNSTEST_INSTALL_SHELL="$TMP/bin/fail-ash"
+if busybox ash "$ROOT/install.sh"; then
+  echo 'Expected forced first-install pre-check failure.' >&2
+  exit 1
+fi
+test -f "$DNSTEST_V1_DIR/dns-bench.sh"
+test -L "$DNSTEST_V1_CMD"
+test -f "$DNSTEST_V1_DASHBOARD_PATH"
+grep -q 'preserved-v1-report' "$DNSTEST_V1_DIR/latest-top4.txt"
+test ! -e "$DNSTEST_INSTALL_DIR/dns-bench.sh"
+test ! -L "$DNSTEST_INSTALL_CMD"
+
+# Successful install migrates recognized v1 files but retains reports and data directory.
+export DNSTEST_INSTALL_SHELL="$TMP/bin/ash"
 busybox ash "$ROOT/install.sh"
 test -L "$DNSTEST_INSTALL_CMD"
 test "$(readlink "$DNSTEST_INSTALL_CMD")" = "$DNSTEST_INSTALL_DIR/dns-bench.sh"
@@ -55,6 +85,14 @@ test -x "$DNSTEST_INSTALL_DIR/doh-bench.sh"
 test -s "$DNSTEST_DASHBOARD_PATH"
 busybox ash "$DNSTEST_INSTALL_CMD" --version | grep -q 'v2.0.0'
 DNSTEST_DIR="$DNSTEST_INSTALL_DIR" busybox ash "$DNSTEST_INSTALL_CMD" --check | grep -q 'Pre-check: OK'
+test ! -e "$DNSTEST_V1_DIR/dns-bench.sh"
+test ! -L "$DNSTEST_V1_CMD"
+test ! -e "$DNSTEST_V1_DASHBOARD_PATH"
+test -d "$DNSTEST_V1_DIR"
+grep -q 'preserved-v1-report' "$DNSTEST_V1_DIR/latest-top4.txt"
+find "$DNSTEST_BACKUP_ROOT" -type f -name v1-dns-bench.sh | grep -q .
+find "$DNSTEST_BACKUP_ROOT" -type f -name v1-dashboard.sh | grep -q .
+find "$DNSTEST_BACKUP_ROOT" -type l -name v1-command-link | grep -q .
 
 # A failed post-install pre-check must restore every previous installed file and link.
 printf '\n# rollback-fixture\n' >> "$DNSTEST_INSTALL_DIR/dns-bench.sh"
@@ -92,5 +130,5 @@ if command -v script >/dev/null 2>&1; then
 else
   echo 'TTY uninstall behavior skipped: util-linux script is unavailable.'
 fi
-grep -q 'version-1-preserve' "$TMP/root/dnstest/dns-bench.sh"
-echo 'Installer rollback, upgrade backup, v1 isolation and uninstall preservation: PASS'
+grep -q 'preserved-v1-report' "$DNSTEST_V1_DIR/latest-top4.txt"
+echo 'Installer rollback, v1 migration/restore, report preservation, upgrade backup and uninstall: PASS'
