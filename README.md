@@ -45,7 +45,7 @@ The complete installer is maintained in [install.sh](install.sh). It:
 4. Installs only missing runtime dependencies using `apk add` or `opkg install`; it does **not** run `apk update`.
 5. Creates a timestamped backup of existing v2 files before replacing them during an upgrade.
 6. Installs the command as `/usr/bin/dnstest2`, the project files under `/root/dnstest2/`, and the SSH login dashboard under `/etc/profile.d/`.
-7. Runs the local `dnstest2 --check` pre-check before reporting success.
+7. Installs through staged files and atomic renames, then runs the local `dnstest2 --check` pre-check before reporting success. If a file replacement or pre-check fails, the previous v2 scripts, dashboard, and command link are restored from the transaction backup.
 
 Runtime packages installed only when needed:
 - `coreutils-timeout` — provides `timeout`
@@ -132,7 +132,7 @@ curl -fsSL https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/m
 
 ### Uninstaller script
 
-The complete removal script is maintained in [uninstall.sh](uninstall.sh). It requires the user to type `YES` interactively, then removes only the v2 benchmark scripts, the `dnstest2` command link, and the v2 SSH dashboard.
+The complete removal script is maintained in [uninstall.sh](uninstall.sh). It requires the user to type `YES` interactively, then removes only files positively identified as belonging to v2. Unrecognized files, regular command files, and unrelated symlinks are preserved.
 
 It preserves:
 - Benchmark reports and result files
