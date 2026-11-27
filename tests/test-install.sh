@@ -116,7 +116,7 @@ sleep 1
 busybox ash "$ROOT/install.sh"
 find "$DNSTEST_BACKUP_ROOT" -type f -name dns-bench.sh -exec grep -l 'rollback-fixture' {} \; | grep -q .
 ! grep -q 'rollback-fixture' "$DNSTEST_INSTALL_DIR/dns-bench.sh"
-grep -q 'version-1-preserve' "$TMP/root/dnstest/dns-bench.sh"
+grep -q 'preserved-v1-report' "$DNSTEST_V1_DIR/latest-top4.txt"
 
 # Uninstall must preserve reports, backups, packages, v1, and unrelated paths.
 printf 'preserved-report\n' > "$DNSTEST_INSTALL_DIR/latest-top10.txt"
