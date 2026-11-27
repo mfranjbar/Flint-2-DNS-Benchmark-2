@@ -18,6 +18,10 @@ cat > "$TMP/bin/ash" <<'MOCK'
 #!/bin/sh
 exec busybox ash "$@"
 MOCK
+cat > "$TMP/bin/fail-ash" <<'MOCK'
+#!/bin/sh
+exit 1
+MOCK
 cat > "$TMP/bin/curl" <<'MOCK'
 #!/bin/sh
 case "${1:-}" in
@@ -52,13 +56,31 @@ test -s "$DNSTEST_DASHBOARD_PATH"
 busybox ash "$DNSTEST_INSTALL_CMD" --version | grep -q 'v2.0.0'
 DNSTEST_DIR="$DNSTEST_INSTALL_DIR" busybox ash "$DNSTEST_INSTALL_CMD" --check | grep -q 'Pre-check: OK'
 
-printf '\n# previous-install-marker\n' >> "$DNSTEST_INSTALL_DIR/dns-bench.sh"
+# A failed post-install pre-check must restore every previous installed file and link.
+printf '\n# rollback-fixture\n' >> "$DNSTEST_INSTALL_DIR/dns-bench.sh"
+cp -p "$DNSTEST_INSTALL_DIR/dns-bench.sh" "$TMP/before-dns.sh"
+cp -p "$DNSTEST_INSTALL_DIR/doh-bench.sh" "$TMP/before-doh.sh"
+cp -p "$DNSTEST_DASHBOARD_PATH" "$TMP/before-dashboard.sh"
+export DNSTEST_INSTALL_SHELL="$TMP/bin/fail-ash"
+if busybox ash "$ROOT/install.sh"; then
+  echo 'Expected forced post-install pre-check failure.' >&2
+  exit 1
+fi
+cmp -s "$TMP/before-dns.sh" "$DNSTEST_INSTALL_DIR/dns-bench.sh"
+cmp -s "$TMP/before-doh.sh" "$DNSTEST_INSTALL_DIR/doh-bench.sh"
+cmp -s "$TMP/before-dashboard.sh" "$DNSTEST_DASHBOARD_PATH"
+test -L "$DNSTEST_INSTALL_CMD"
+test "$(readlink "$DNSTEST_INSTALL_CMD")" = "$DNSTEST_INSTALL_DIR/dns-bench.sh"
+
+# A successful upgrade backs up the old v2 files before replacing them.
+export DNSTEST_INSTALL_SHELL="$TMP/bin/ash"
 sleep 1
 busybox ash "$ROOT/install.sh"
-find "$DNSTEST_BACKUP_ROOT" -type f -name dns-bench.sh -exec grep -l 'previous-install-marker' {} \; | grep -q .
-! grep -q 'previous-install-marker' "$DNSTEST_INSTALL_DIR/dns-bench.sh"
+find "$DNSTEST_BACKUP_ROOT" -type f -name dns-bench.sh -exec grep -l 'rollback-fixture' {} \; | grep -q .
+! grep -q 'rollback-fixture' "$DNSTEST_INSTALL_DIR/dns-bench.sh"
 grep -q 'version-1-preserve' "$TMP/root/dnstest/dns-bench.sh"
 
+# Uninstall must preserve reports, backups, packages, v1, and unrelated paths.
 printf 'preserved-report\n' > "$DNSTEST_INSTALL_DIR/latest-top10.txt"
 if command -v script >/dev/null 2>&1; then
   printf 'YES\n' | script -q -e -c "DNSTEST_INSTALL_DIR='$DNSTEST_INSTALL_DIR' DNSTEST_INSTALL_CMD='$DNSTEST_INSTALL_CMD' DNSTEST_DASHBOARD_PATH='$DNSTEST_DASHBOARD_PATH' busybox ash '$ROOT/uninstall.sh'" /dev/null >/dev/null
@@ -71,4 +93,4 @@ else
   echo 'TTY uninstall behavior skipped: util-linux script is unavailable.'
 fi
 grep -q 'version-1-preserve' "$TMP/root/dnstest/dns-bench.sh"
-echo 'Installer, pre-check, upgrade backup, v1 isolation and uninstall preservation: PASS'
+echo 'Installer rollback, upgrade backup, v1 isolation and uninstall preservation: PASS'
