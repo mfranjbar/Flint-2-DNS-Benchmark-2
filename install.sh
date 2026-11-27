@@ -16,6 +16,17 @@ HAD_DNS=0
 HAD_DOH=0
 HAD_DASH=0
 HAD_CMD=0
+HAD_V1_SCRIPT=0
+HAD_V1_DASH=0
+HAD_V1_CMD=0
+V1_DIR="${DNSTEST_V1_DIR:-/root/dnstest}"
+V1_SCRIPT="$V1_DIR/dns-bench.sh"
+V1_CMD="${DNSTEST_V1_CMD:-/usr/bin/dnstest}"
+V1_DASH="${DNSTEST_V1_DASHBOARD_PATH:-/etc/profile.d/40-dnstest-dashboard.sh}"
+V1_OWN_SCRIPT=0
+V1_OWN_DASH=0
+V1_OWN_CMD=0
+V1_DIR_SAFE=1
 say(){ printf '%s\n' "$*"; }
 die(){ say "ERROR: $*" >&2; if [ "$TRANSACTION" -eq 1 ]; then rollback; fi; exit 1; }
 
@@ -54,6 +65,9 @@ rollback(){
   restore_file "$BACKUP/doh-bench.sh" "$DIR/doh-bench.sh" "$HAD_DOH" 0 || say 'WARNING: DoH script restore failed.'
   restore_file "$BACKUP/41-dnstest2-dashboard.sh" "$DASH" "$HAD_DASH" 0 || say 'WARNING: dashboard restore failed.'
   restore_file "$BACKUP/dnstest2-command-link" "$CMD" "$HAD_CMD" 1 || say 'WARNING: command link restore failed.'
+  [ "$HAD_V1_SCRIPT" -eq 0 ] || restore_file "$BACKUP/v1-dns-bench.sh" "$V1_SCRIPT" 1 0 || say 'WARNING: v1 benchmark restore failed.'
+  [ "$HAD_V1_DASH" -eq 0 ] || restore_file "$BACKUP/v1-dashboard.sh" "$V1_DASH" 1 0 || say 'WARNING: v1 dashboard restore failed.'
+  [ "$HAD_V1_CMD" -eq 0 ] || restore_file "$BACKUP/v1-command-link" "$V1_CMD" 1 1 || say 'WARNING: v1 command link restore failed.'
   TRANSACTION=0
 }
 
@@ -114,14 +128,64 @@ for C in awk grep sort head sed date mkdir rmdir rm mv cat base64 od tr wc cp re
 done
 
 mkdir -p "$DIR" "$BACKUP_ROOT" /etc/profile.d || die 'Cannot create install directories.'
-STAMP="$(date '+%Y%m%d-%H%M%S')-$$"
-BACKUP="$BACKUP_ROOT/$STAMP"
-mkdir -p "$BACKUP" || die 'Cannot create transaction backup directory.'
+STAMP="$(date '+%Y%m%d-%H%M%S')"
+BACKUP="$(mktemp -d "$BACKUP_ROOT/$STAMP.XXXXXX")" || die 'Cannot create unique transaction backup directory.'
+
+# Detect v1 only by its known paths AND project-specific content. Never follow symlinks.
+if [ -L "$V1_DIR" ]; then
+  V1_DIR_SAFE=0
+  say "WARNING: v1 directory is a symlink; leaving v1 untouched: $V1_DIR"
+elif [ -f "$V1_SCRIPT" ] && [ ! -L "$V1_SCRIPT" ] &&
+     grep -Fq '# FLINT 2 DNS BENCHMARK' "$V1_SCRIPT" &&
+     grep -Fq 'REPORT="$DIR/latest-top4.txt"' "$V1_SCRIPT"; then
+  V1_OWN_SCRIPT=1
+elif [ -e "$V1_SCRIPT" ] || [ -L "$V1_SCRIPT" ]; then
+  say "WARNING: Unrecognized v1 script path preserved: $V1_SCRIPT"
+fi
+
+if [ "$V1_DIR_SAFE" -eq 1 ] && [ -f "$V1_DASH" ] && [ ! -L "$V1_DASH" ] &&
+   grep -Fq '# Flint 2 - DNS benchmark SSH dashboard' "$V1_DASH" &&
+   grep -Fq 'REPORT="/root/dnstest/latest-top4.txt"' "$V1_DASH"; then
+  V1_OWN_DASH=1
+elif [ "$V1_DIR_SAFE" -eq 1 ] && { [ -e "$V1_DASH" ] || [ -L "$V1_DASH" ]; }; then
+  say "WARNING: Unrecognized v1 dashboard path preserved: $V1_DASH"
+fi
+
+if [ "$V1_DIR_SAFE" -eq 1 ] && [ "$V1_OWN_SCRIPT" -eq 1 ] && [ -L "$V1_CMD" ] &&
+   [ "$(readlink "$V1_CMD")" = "$V1_SCRIPT" ]; then
+  V1_OWN_CMD=1
+elif [ "$V1_DIR_SAFE" -eq 1 ] && { [ -e "$V1_CMD" ] || [ -L "$V1_CMD" ]; }; then
+  say "WARNING: Unrecognized v1 command path preserved: $V1_CMD"
+fi
 
 [ ! -e "$DIR/dns-bench.sh" ] || { cp -p "$DIR/dns-bench.sh" "$BACKUP/dns-bench.sh" && HAD_DNS=1; } || die 'Main script backup failed.'
 [ ! -e "$DIR/doh-bench.sh" ] || { cp -p "$DIR/doh-bench.sh" "$BACKUP/doh-bench.sh" && HAD_DOH=1; } || die 'DoH script backup failed.'
 [ ! -e "$DASH" ] || { cp -p "$DASH" "$BACKUP/41-dnstest2-dashboard.sh" && HAD_DASH=1; } || die 'Dashboard backup failed.'
 [ ! -L "$CMD" ] || { cp -P "$CMD" "$BACKUP/dnstest2-command-link" && HAD_CMD=1; } || die 'Command link backup failed.'
+
+# Back up recognized v1 artifacts before removing them. Reports, backups, packages,
+# and the v1 data directory are deliberately retained.
+if [ "$V1_OWN_SCRIPT" -eq 1 ]; then
+  cp -p "$V1_SCRIPT" "$BACKUP/v1-dns-bench.sh" || die 'Could not back up v1 benchmark.'
+  HAD_V1_SCRIPT=1
+fi
+if [ "$V1_OWN_DASH" -eq 1 ]; then
+  cp -p "$V1_DASH" "$BACKUP/v1-dashboard.sh" || die 'Could not back up v1 dashboard.'
+  HAD_V1_DASH=1
+fi
+if [ "$V1_OWN_CMD" -eq 1 ]; then
+  cp -P "$V1_CMD" "$BACKUP/v1-command-link" || die 'Could not back up v1 command link.'
+  HAD_V1_CMD=1
+fi
+
+# From this point every destructive migration/install step is covered by rollback.
+TRANSACTION=1
+
+# Migration happens only after downloads, syntax/count checks, dependency checks,
+# and backups have succeeded. Rollback restores these exact v1 files on failure.
+[ "$V1_OWN_SCRIPT" -eq 0 ] || rm -f "$V1_SCRIPT" || die 'Could not remove recognized v1 benchmark.'
+[ "$V1_OWN_CMD" -eq 0 ] || rm -f "$V1_CMD" || die 'Could not remove recognized v1 command link.'
+[ "$V1_OWN_DASH" -eq 0 ] || rm -f "$V1_DASH" || die 'Could not remove recognized v1 dashboard.'
 
 cp "$WORK/dns-bench.sh" "$DIR/.dns-bench.sh.new" || die 'Could not stage main script.'
 cp "$WORK/doh-bench.sh" "$DIR/.doh-bench.sh.new" || die 'Could not stage DoH script.'
@@ -141,7 +205,7 @@ DNSTEST_DIR="$DIR" DNSTEST_KDIG="${DNSTEST_KDIG:-/usr/bin/kdig}" "$SHELL_BIN" "$
 TRANSACTION=0
 
 say 'Installation complete. Run: dnstest2'
-say 'Version 1 paths and command were not touched.'
+say 'Recognized v1 benchmark files and command were migrated automatically; reports, backups, packages and data directory were preserved.'
 say 'No DNS, firewall, routing or service settings were changed.'
 say "Backup directory: $BACKUP"
 exit 0
