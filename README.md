@@ -44,8 +44,11 @@ The complete installer is maintained in [install.sh](install.sh). It:
 3. Checks script syntax and verifies the expected resolver counts.
 4. Installs only missing runtime dependencies using `apk add` or `opkg install`; it does **not** run `apk update`.
 5. Creates a timestamped backup of existing v2 files before replacing them during an upgrade.
-6. Installs the command as `/usr/bin/dnstest2`, the project files under `/root/dnstest2/`, and the SSH login dashboard under `/etc/profile.d/`.
-7. Installs through staged files and atomic renames, then runs the local `dnstest2 --check` pre-check before reporting success. If a file replacement or pre-check fails, the previous v2 scripts, dashboard, and command link are restored from the transaction backup.
+6. Detects the original v1 installation only at its known paths (`/root/dnstest/dns-bench.sh`, `/usr/bin/dnstest`, and `/etc/profile.d/40-dnstest-dashboard.sh`) and verifies project-specific file markers before removing anything.
+7. Backs up each positively identified v1 script, dashboard, and command symlink into the v2 timestamped backup directory, then removes only those exact v1 artifacts. It preserves the v1 data directory, reports (including `latest-top4.txt`), old backups, and installed packages.
+8. Installs the v2 command as `/usr/bin/dnstest2`, project files under `/root/dnstest2/`, and its SSH dashboard under `/etc/profile.d/41-dnstest2-dashboard.sh`.
+9. Installs through staged files and atomic renames, then runs the local `dnstest2 --check` pre-check before reporting success. If migration, file replacement, or pre-check fails, the previous v2 state and any v1 files already removed are restored from the transaction backup.
+10. If a v1 path is a symlink or contains unrecognized content, it is preserved and a warning is printed; the installer does not guess ownership.
 
 Runtime packages installed only when needed:
 - `coreutils-timeout` — provides `timeout`
@@ -152,4 +155,4 @@ It preserves:
 
 ## Safety and scope
 
-The benchmark performs DNS queries for measurement only. It does not change the router's active DNS configuration, DNSCrypt, Passwall2, firewall rules, routing tables, Wi-Fi, interfaces, or service settings. Version 2 uses separate paths and command names so it can coexist with version 1.
+The benchmark performs DNS queries for measurement only. It does not change the router's active DNS configuration, DNSCrypt, Passwall2, firewall rules, routing tables, Wi-Fi, interfaces, or service settings. The installer migrates a positively identified v1 installation automatically. If it cannot safely identify a v1 artifact, that artifact is left untouched. Version 2 uses separate paths and command names. It never removes v1 reports, data directories, backups, or packages.
