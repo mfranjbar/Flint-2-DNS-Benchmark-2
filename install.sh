@@ -27,6 +27,7 @@ V1_OWN_SCRIPT=0
 V1_OWN_DASH=0
 V1_OWN_CMD=0
 V1_DIR_SAFE=1
+APK_INDEX_READY=0
 say(){ printf '%s\n' "$*"; }
 die(){ say "ERROR: $*" >&2; if [ "$TRANSACTION" -eq 1 ]; then rollback; fi; exit 1; }
 
@@ -42,11 +43,19 @@ fetch(){
   if command -v curl >/dev/null 2>&1 && curl -fsSL "$1" -o "$2" && [ -s "$2" ]; then return 0; fi
   return 1
 }
+ensure_apk_indexes(){
+  [ "$APK_INDEX_READY" -eq 1 ] && return 0
+  say 'Refreshing APK package indexes (no packages will be upgraded).'
+  apk update || die 'APK index refresh failed; no v1 files have been changed.'
+  APK_INDEX_READY=1
+}
 install_pkg(){
   P="$1"; C="$2"
   command -v "$C" >/dev/null 2>&1 && return 0
   say "Installing missing dependency: $P"
-  if command -v apk >/dev/null 2>&1; then apk add "$P" || die "Could not install $P (no apk update is run)."
+  if command -v apk >/dev/null 2>&1; then
+    ensure_apk_indexes
+    apk add "$P" || die "Could not install $P; no existing benchmark files have been migrated."
   elif command -v opkg >/dev/null 2>&1; then opkg install "$P" || die "Could not install $P."
   else die 'Neither apk nor opkg is available.'; fi
   command -v "$C" >/dev/null 2>&1 || die "$P installed but $C is unavailable."
@@ -118,7 +127,7 @@ install_pkg coreutils-base64 base64
 install_pkg coreutils-od od
 if [ ! -s /etc/ssl/cert.pem ] && [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then
   say 'Installing CA certificate bundle: ca-bundle'
-  if command -v apk >/dev/null 2>&1; then apk add ca-bundle || die 'Could not install ca-bundle.'
+  if command -v apk >/dev/null 2>&1; then ensure_apk_indexes; apk add ca-bundle || die 'Could not install ca-bundle.'
   elif command -v opkg >/dev/null 2>&1; then opkg install ca-bundle || die 'Could not install ca-bundle.'
   else die 'Neither apk nor opkg is available for ca-bundle.'; fi
 fi
@@ -136,16 +145,17 @@ if [ -L "$V1_DIR" ]; then
   V1_DIR_SAFE=0
   say "WARNING: v1 directory is a symlink; leaving v1 untouched: $V1_DIR"
 elif [ -f "$V1_SCRIPT" ] && [ ! -L "$V1_SCRIPT" ] &&
-     grep -Fq '# FLINT 2 DNS BENCHMARK' "$V1_SCRIPT" &&
-     grep -Fq 'REPORT="$DIR/latest-top4.txt"' "$V1_SCRIPT"; then
+     grep -Fq 'REPORT="$DIR/latest-top4.txt"' "$V1_SCRIPT" &&
+     { grep -Fq '# FLINT 2 DNS BENCHMARK' "$V1_SCRIPT" ||
+       { [ -L "$V1_CMD" ] && [ "$(readlink "$V1_CMD")" = "$V1_SCRIPT" ]; }; }; then
   V1_OWN_SCRIPT=1
 elif [ -e "$V1_SCRIPT" ] || [ -L "$V1_SCRIPT" ]; then
   say "WARNING: Unrecognized v1 script path preserved: $V1_SCRIPT"
 fi
 
 if [ "$V1_DIR_SAFE" -eq 1 ] && [ -f "$V1_DASH" ] && [ ! -L "$V1_DASH" ] &&
-   grep -Fq '# Flint 2 - DNS benchmark SSH dashboard' "$V1_DASH" &&
-   grep -Fq 'REPORT="/root/dnstest/latest-top4.txt"' "$V1_DASH"; then
+   grep -Fq 'REPORT="/root/dnstest/latest-top4.txt"' "$V1_DASH" &&
+   { grep -Fq '# Flint 2 - DNS benchmark SSH dashboard' "$V1_DASH" || [ "$V1_OWN_SCRIPT" -eq 1 ]; }; then
   V1_OWN_DASH=1
 elif [ "$V1_DIR_SAFE" -eq 1 ] && { [ -e "$V1_DASH" ] || [ -L "$V1_DASH" ]; }; then
   say "WARNING: Unrecognized v1 dashboard path preserved: $V1_DASH"
