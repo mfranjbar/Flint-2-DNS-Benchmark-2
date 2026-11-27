@@ -1,102 +1,192 @@
-# Flint 2 DNS Benchmark 2
+<div align="center">
 
-A standalone DNS benchmarking tool for **GL.iNet Flint 2 and compatible OpenWrt systems**. It measures public IPv4 DNS resolvers over UDP, TCP, DNS-over-TLS (DoT), and DNS-over-HTTPS (DoH), plus a separate group of Iranian DNS servers.
+# Flint 2 DNS Benchmark
 
-This is an independent second version. It does **not** modify, replace, or depend on the original v1 project:
-- v1 repository: https://github.com/mfranjbar/flint2-dns-benchmark-
-- v2 repository: https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2
+**A lightweight, multi-protocol DNS benchmark for GL.iNet Flint 2 and compatible OpenWrt routers.**
 
-## Features
+[![CI](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2/actions/workflows/checks.yml)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2)
+[![Platform](https://img.shields.io/badge/platform-OpenWrt%20%7C%20ImmortalWrt-2496ED)](https://openwrt.org/)
+[![Shell](https://img.shields.io/badge/shell-BusyBox%20ash-lightgrey)](https://busybox.net/)
 
-- Tests 27 public IPv4 DNS endpoints over UDP and TCP independently.
-- Tests all 9 configured Iranian DNS endpoints over UDP and TCP.
-- Tests 13 DNS-over-TLS endpoints with certificate and TLS-hostname verification.
-- Tests 26 DNS-over-HTTPS providers using DNS wire-format requests and TLS verification.
-- Includes Level3 DNS endpoints `4.2.2.2` and `4.2.2.4`.
-- Runs sequentially to avoid creating unnecessary test load on the router.
-- Uses one unscored warm-up round and two measured rounds.
-- Applies a 5000 ms penalty to failed measured requests so unreliable resolvers do not rank artificially high.
-- Keeps the final report to exactly 10 ranked rows.
-- Does not configure or change DNS, DNSCrypt, Passwall2, firewall, routes, interfaces, or network services.
-- Does not include local DNS or DNSCrypt in the results.
+[Features](#-features) · [Quick install](#-quick-install) · [Run](#-run-the-benchmark) · [Uninstall](#-uninstall) · [Methodology](#-benchmark-methodology) · [Safety](#-safety--v1-to-v2-migration)
 
-## Install
+</div>
 
-Run the following on the Flint 2 as **root**. The device needs `wget` (or `curl`) and internet access to download the installer.
+---
 
-### One-command installation
+## Overview
+
+Flint 2 DNS Benchmark measures resolver response times across **UDP, TCP, DNS-over-TLS (DoT), and DNS-over-HTTPS (DoH)**. It also tests a separate set of Iranian DNS endpoints and produces a compact, ranked report directly on your router.
+
+The project is designed for router environments: tests run sequentially, use BusyBox-compatible shell scripts, and avoid changing the router's active network configuration.
+
+> **Version 2 is a separate project.** It uses its own command, installation directory, dashboard, and reports. The original v1 repository is not modified or required.
+
+| Project | Repository |
+|---|---|
+| Original version 1 | [mfranjbar/flint2-dns-benchmark-](https://github.com/mfranjbar/flint2-dns-benchmark-) |
+| Current version 2 | [mfranjbar/Flint-2-DNS-Benchmark-2](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2) |
+
+## ✨ Features
+
+- **27 public DNS endpoints** tested independently over UDP and TCP.
+- **9 Iranian DNS endpoints** tested over UDP and TCP.
+- **13 DNS-over-TLS resolvers**, with certificate and TLS hostname verification.
+- **26 DNS-over-HTTPS providers**, using DNS wire-format HTTPS requests and TLS verification.
+- Includes Level3 endpoints `4.2.2.2` and `4.2.2.4`.
+- Sequential measurements to avoid unnecessary concurrent load on the router.
+- One warm-up round (not scored) followed by two measured rounds.
+- Failed measured requests receive a 5000 ms penalty so unreliable servers do not rank artificially high.
+- A consistent **10-row final report**, separated by protocol/category.
+- An SSH login dashboard showing the latest benchmark report.
+- Installer with preflight checks, backups, staged file replacement, and rollback.
+- Automatic migration of a recognized v1 installation to v2.
+
+## ⚡ Quick install
+
+Connect to your router over SSH and run the following command as **root**.
+
+### Install / upgrade
 
 ```sh
 wget -O /tmp/dnstest2-install.sh https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/install.sh && ash /tmp/dnstest2-install.sh
 ```
 
-If wget is unavailable but curl is already installed:
+If `wget` is unavailable and `curl` is installed:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/install.sh -o /tmp/dnstest2-install.sh && ash /tmp/dnstest2-install.sh
 ```
 
-### Installer script
+The installer downloads the benchmark scripts and dashboard, checks their syntax and resolver counts, installs only missing dependencies, and runs a local post-install check. It does **not** run `apk update`.
 
-The complete installer is maintained in [install.sh](install.sh). It:
-1. Checks that it is running as root.
-2. Downloads the benchmark engine, DoH module, and SSH dashboard from this repository.
-3. Checks script syntax and verifies the expected resolver counts.
-4. Installs only missing runtime dependencies using `apk add` or `opkg install`; it does **not** run `apk update`.
-5. Creates a timestamped backup of existing v2 files before replacing them during an upgrade.
-6. Detects the original v1 installation only at its known paths (`/root/dnstest/dns-bench.sh`, `/usr/bin/dnstest`, and `/etc/profile.d/40-dnstest-dashboard.sh`) and verifies project-specific file markers before removing anything.
-7. Backs up each positively identified v1 script, dashboard, and command symlink into the v2 timestamped backup directory, then removes only those exact v1 artifacts. It preserves the v1 data directory, reports (including `latest-top4.txt`), old backups, and installed packages.
-8. Installs the v2 command as `/usr/bin/dnstest2`, project files under `/root/dnstest2/`, and its SSH dashboard under `/etc/profile.d/41-dnstest2-dashboard.sh`.
-9. Installs through staged files and atomic renames, then runs the local `dnstest2 --check` pre-check before reporting success. If migration, file replacement, or pre-check fails, the previous v2 state and any v1 files already removed are restored from the transaction backup.
-10. If a v1 path is a symlink or contains unrecognized content, it is preserved and a warning is printed; the installer does not guess ownership.
+### Requirements
 
-Runtime packages installed only when needed:
-- `coreutils-timeout` — provides `timeout`
-- `knot-dig` — provides `kdig`
-- `curl` — HTTPS/DoH requests
-- `coreutils-base64` — provides `base64`
-- `coreutils-od` — provides `od`
-- `ca-bundle` — installed only if a usable CA certificate bundle is missing
+| Requirement | Details |
+|---|---|
+| Router | GL.iNet Flint 2 (GL-MT6000) or compatible OpenWrt/ImmortalWrt |
+| Access | SSH shell with root privileges |
+| Shell | BusyBox `ash` |
+| Download | `wget` or `curl` and internet access |
+| Package manager | `apk` or `opkg`, only if a dependency is missing |
 
-BusyBox utilities are used where available; separate packages are not installed for those utilities. The initial download requires at least one working downloader (`wget` or `curl`).
+The installer checks for these runtime tools and installs only what is missing:
 
-## Run
+| Package | Utility / purpose |
+|---|---|
+| `coreutils-timeout` | `timeout` |
+| `knot-dig` | `kdig` |
+| `curl` | HTTPS and DoH requests |
+| `coreutils-base64` | `base64` |
+| `coreutils-od` | `od` |
+| `ca-bundle` | CA certificates, only when no usable bundle exists |
 
-After installation, connect over SSH and run:
+BusyBox-provided utilities are reused where available. Package installation does not include a package-index refresh.
+
+## ▶️ Run the benchmark
+
+After installation, run:
 
 ```sh
 dnstest2
 ```
 
-Other commands:
+Useful commands:
 
-```sh
-dnstest2 --check
-dnstest2 --version
-dnstest2 --help
+| Command | Description |
+|---|---|
+| `dnstest2` | Run the complete DNS benchmark |
+| `dnstest2 --check` | Check local dependencies and installation paths; sends no DNS queries |
+| `dnstest2 --version` | Display the installed version |
+| `dnstest2 --help` | Display command help |
+
+### Output files
+
+| File | Description |
+|---|---|
+| `/root/dnstest2/latest-top10.txt` | Combined 10-row ranked report |
+| `/root/dnstest2/latest-doh.txt` | Detailed DoH report |
+
+The SSH dashboard is installed at:
+
+```
+/etc/profile.d/41-dnstest2-dashboard.sh
 ```
 
-- `--check` checks local dependencies and installation paths only; it sends no DNS queries.
-- Running `dnstest2` starts the full benchmark.
-- The SSH dashboard is installed at `/etc/profile.d/41-dnstest2-dashboard.sh`.
+## 🧹 Uninstall
 
-## Benchmark method
+To remove version 2, connect over SSH and run this command as **root**:
 
-| Category | Test coverage |
+```sh
+wget -O /tmp/dnstest2-uninstall.sh https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/uninstall.sh && ash /tmp/dnstest2-uninstall.sh
+```
+
+If `wget` is unavailable and `curl` is installed:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/uninstall.sh -o /tmp/dnstest2-uninstall.sh && ash /tmp/dnstest2-uninstall.sh
+```
+
+**Uninstallation requires interactive confirmation.** When prompted, type:
+
+```
+YES
+```
+
+The uninstaller removes only recognized v2 benchmark scripts, the v2 command symlink, and the v2 SSH dashboard. It deliberately preserves:
+
+- Benchmark reports and result files.
+- Timestamped installation and migration backups.
+- Installed dependency packages.
+- The original v1 files, command, dashboard, reports, and data directory.
+- DNS, DNSCrypt, Passwall2, firewall, routing, interface, Wi-Fi, and service configuration.
+- Unrecognized files and unrelated command links.
+
+The uninstaller does not remove packages and does not attempt to clean up directories containing user data.
+
+## 🔄 Automatic v1 → v2 migration
+
+If the original v1 installation is present, the v2 installer can migrate it automatically. **Do not manually delete v1 first.**
+
+The installer checks the known v1 locations and verifies project-specific content before treating a file as belonging to v1:
+
+| v1 artifact | Known location |
 |---|---|
-| Public UDP | 27 public IPv4 resolvers |
-| Public TCP | The same 27 resolvers, tested independently over TCP |
-| Iranian DNS | 9 configured Iranian IPv4 endpoints over UDP and TCP |
-| DoT | 13 TLS resolvers with CA and hostname validation |
-| DoH | 26 providers using DNS wire-format HTTPS requests |
+| Benchmark script | `/root/dnstest/dns-bench.sh` |
+| Command link | `/usr/bin/dnstest` |
+| SSH dashboard | `/etc/profile.d/40-dnstest-dashboard.sh` |
 
-UDP, TCP, and DoT tests query `github.com`, `nasa.gov`, and `openwrt.org`. DoH tests use 12 configured hostnames: `google.com`, `youtube.com`, `facebook.com`, `instagram.com`, `chatgpt.com`, `x.com`, `whatsapp.com`, `reddit.com`, `wikipedia.org`, `amazon.com`, `tiktok.com`, and `pinterest.com`.
+When recognized, the installer:
 
-Each resolver receives one warm-up round that is excluded from the score, followed by two measured rounds. Failed measured samples are assigned a 5000 ms penalty. DoH responses are checked for HTTP success, matching DNS transaction ID, a valid DNS response, and acceptable DNS response codes. TLS certificate verification is enabled.
+1. Creates a private, uniquely named transaction backup.
+2. Backs up the v1 benchmark script, dashboard, and command link.
+3. Removes only those positively identified v1 program files.
+4. Installs v2 under its separate paths: `/root/dnstest2/`, `/usr/bin/dnstest2`, and `/etc/profile.d/41-dnstest2-dashboard.sh`.
+5. Runs the v2 local pre-check.
+6. Restores the previous files if migration, installation, or the pre-check fails.
 
-## Results
+**Your v1 reports and data are retained**, including `/root/dnstest/latest-top4.txt`, the `/root/dnstest/` directory, previous backups, and installed packages. If a file or symlink cannot be positively identified, it is left untouched and the installer reports a warning instead of guessing.
 
-The final report contains exactly 10 rows, in this order:
+## 📊 Benchmark methodology
+
+| Test group | Coverage |
+|---|---:|
+| Public DNS over UDP | 27 endpoints |
+| Public DNS over TCP | Same 27 endpoints, tested independently |
+| Iranian DNS over UDP/TCP | 9 configured endpoints |
+| DNS-over-TLS | 13 endpoints |
+| DNS-over-HTTPS | 26 providers |
+
+UDP, TCP, and DoT tests query `github.com`, `nasa.gov`, and `openwrt.org`.
+
+DoH tests use 12 configured hostnames: `google.com`, `youtube.com`, `facebook.com`, `instagram.com`, `chatgpt.com`, `x.com`, `whatsapp.com`, `reddit.com`, `wikipedia.org`, `amazon.com`, `tiktok.com`, and `pinterest.com`.
+
+Each resolver receives one unscored warm-up round and two measured rounds. Failed measured samples receive a 5000 ms penalty. DoH responses are checked for HTTP success, matching DNS transaction ID, a valid DNS response, and acceptable DNS response codes. TLS certificate verification is enabled.
+
+### Final report layout
+
+The combined report contains exactly 10 ranked rows:
 
 1. Best TCP
 2. Second-best TCP
@@ -109,50 +199,47 @@ The final report contains exactly 10 rows, in this order:
 9. Best Iranian DNS
 10. Second-best Iranian DNS
 
-Columns: `# DNS AVG IP TYPE OK`
+Columns: `# DNS AVG IP TYPE OK`.
 
-The two Iranian entries are selected from the successful Iranian UDP and TCP results. The report is saved to:
+The two Iranian entries are selected from successful Iranian UDP and TCP results. The ranking reflects the test conditions and network path at the time of measurement; it is not a guarantee of future performance.
 
-```
-/root/dnstest2/latest-top10.txt
-```
+## 🛡️ Safety and scope
 
-The standalone DoH module also keeps its own detailed report at `/root/dnstest2/latest-doh.txt`.
+The benchmark sends DNS queries for measurement. It does **not** configure or change:
 
-## Uninstall
+- Active DNS settings or DNSCrypt.
+- Passwall2 or proxy configuration.
+- Firewall rules or routing tables.
+- Network interfaces, Wi-Fi, or router services.
 
-Run on the router as **root**:
+The installer and uninstaller do not change these settings either. The installer does not run `apk update` and does not remove packages. Backups are retained for manual recovery; they are not automatically deleted.
 
-```sh
-wget -O /tmp/dnstest2-uninstall.sh https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/uninstall.sh && ash /tmp/dnstest2-uninstall.sh
-```
+## 📁 Project structure
 
-If wget is unavailable but curl is installed:
+| File | Purpose |
+|---|---|
+| [`install.sh`](install.sh) | Installer, dependency checks, v1 migration, rollback |
+| [`uninstall.sh`](uninstall.sh) | Interactive, ownership-aware v2 removal |
+| [`dns-bench.sh`](dns-bench.sh) | UDP, TCP, DoT, Iranian DNS orchestration and final report |
+| [`doh-bench.sh`](doh-bench.sh) | Standalone DoH measurement engine |
+| [`41-dnstest2-dashboard.sh`](41-dnstest2-dashboard.sh) | SSH login dashboard |
+| [`DOH.md`](DOH.md) | DoH implementation notes |
+| [`CHANGELOG.md`](CHANGELOG.md) | Version history |
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/mfranjbar/Flint-2-DNS-Benchmark-2/main/uninstall.sh -o /tmp/dnstest2-uninstall.sh && ash /tmp/dnstest2-uninstall.sh
-```
+## ⚠️ Measurement notes
 
-### Uninstaller script
+- DNS latency depends on the router, ISP, routing, resolver load, and current network conditions.
+- A resolver may be fast from one location and slower from another.
+- Endpoint availability and provider infrastructure can change over time.
+- Run the benchmark more than once if you need a more representative comparison.
+- This tool measures response time and basic response validity; it is not a full DNS security, privacy, or DNSSEC audit.
 
-The complete removal script is maintained in [uninstall.sh](uninstall.sh). It requires the user to type `YES` interactively, then removes only files positively identified as belonging to v2. Unrecognized files, regular command files, and unrelated symlinks are preserved.
+---
 
-It preserves:
-- Benchmark reports and result files
-- Installation backups
-- Installed dependency packages
-- DNS and network configuration
-- The original v1 installation, command, dashboard, and reports
+<div align="center">
 
-## Project files
+**Flint 2 DNS Benchmark · Version 2**
 
-- [install.sh](install.sh) — installer and dependency setup
-- [uninstall.sh](uninstall.sh) — interactive v2 removal script
-- [dns-bench.sh](dns-bench.sh) — UDP, TCP, DoT, Iranian DNS orchestration and final report
-- [doh-bench.sh](doh-bench.sh) — standalone DoH testing engine
-- [41-dnstest2-dashboard.sh](41-dnstest2-dashboard.sh) — SSH login dashboard
-- [DOH.md](DOH.md) — DoH implementation notes
+[Repository](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2) · [Issues](https://github.com/mfranjbar/Flint-2-DNS-Benchmark-2/issues) · [Changelog](CHANGELOG.md)
 
-## Safety and scope
-
-The benchmark performs DNS queries for measurement only. It does not change the router's active DNS configuration, DNSCrypt, Passwall2, firewall rules, routing tables, Wi-Fi, interfaces, or service settings. The installer migrates a positively identified v1 installation automatically. If it cannot safely identify a v1 artifact, that artifact is left untouched. Version 2 uses separate paths and command names. It never removes v1 reports, data directories, backups, or packages.
+</div>
