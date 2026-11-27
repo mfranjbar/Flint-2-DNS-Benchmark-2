@@ -65,13 +65,13 @@ The installer downloads the benchmark scripts and dashboard, checks their syntax
 
 | Requirement | Details |
 |---|---|
-| Router | GL.iNet Flint 2 (GL-MT6000) or compatible OpenWrt/ImmortalWrt |
+| Router | OpenWrt / ImmortalWrt with BusyBox `ash`; ImmortalWrt 25.12.x (`apk`) is supported. AX3600 and Flint 2 are validated targets. Other models depend on package availability for their configured target and architecture. |
 | Access | SSH shell with root privileges |
 | Shell | BusyBox `ash` |
 | Download | `wget` or `curl` and internet access |
 | Package manager | `apk` or `opkg`, only if a dependency is missing |
 
-The installer checks for these runtime tools and installs only what is missing:
+The installer checks for these runtime tools and installs only what is missing. On `apk` systems, it refreshes package indexes automatically and only when a required utility is missing; it does not upgrade installed packages. Package selection is delegated to the router's configured APK feeds and architecture (`/etc/apk/arch`), so the installer does not hard-code an AX3600 or Flint 2 feed:
 
 | Package | Utility / purpose |
 |---|---|
@@ -82,7 +82,7 @@ The installer checks for these runtime tools and installs only what is missing:
 | `coreutils-od` | `od` |
 | `ca-bundle` | CA certificates, only when no usable bundle exists |
 
-BusyBox-provided utilities are reused where available. Package installation does not include a package-index refresh.
+BusyBox-provided utilities are reused where available. On `opkg` systems, the installer does not refresh package lists automatically; configure package feeds and indexes before installing if a dependency is missing.
 
 ## ▶️ Run the benchmark
 
@@ -147,7 +147,7 @@ The uninstaller does not remove packages and does not attempt to clean up direct
 
 ## 🔄 Automatic v1 → v2 migration
 
-If the original v1 installation is present, the v2 installer can migrate it automatically. **Do not manually delete v1 first.**
+If the original v1 installation is present, the v2 installer can migrate it automatically. It recognizes both the marked Flint 2 v1 layout and the markerless AX3600 layout when the known v1 script, report path, and matching `/usr/bin/dnstest` symlink identify the installation. **Do not manually delete v1 first.**
 
 The installer checks the known v1 locations and verifies project-specific content before treating a file as belonging to v1:
 
